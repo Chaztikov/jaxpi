@@ -6,3 +6,11 @@
 {"time":"2026-06-12T00:49:42.028167362-04:00","level":"INFO","msg":"handler: started","stream_id":"twr49rbo"}
 {"time":"2026-06-12T00:49:42.028193857-04:00","level":"INFO","msg":"sender: started","stream_id":"twr49rbo"}
 {"time":"2026-06-12T00:49:42.612080197-04:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2026-06-12T03:05:50.476021144-04:00","level":"INFO","msg":"stream: closing","id":"twr49rbo"}
+{"time":"2026-06-12T03:05:50.476060021-04:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2026-06-12T03:05:50.478232008-04:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2026-06-12T03:05:52.463387899-04:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-06-12T03:05:52.767282151-04:00","level":"INFO","msg":"handler: closed","stream_id":"twr49rbo"}
+{"time":"2026-06-12T03:05:52.76733368-04:00","level":"INFO","msg":"writer: Close: closed","stream_id":"twr49rbo"}
+{"time":"2026-06-12T03:05:52.76820119-04:00","level":"INFO","msg":"sender: closed","stream_id":"twr49rbo"}
+{"time":"2026-06-12T03:05:52.768245845-04:00","level":"INFO","msg":"stream: closed","id":"twr49rbo"}
