@@ -25,22 +25,25 @@ class NavierStokes2D(ForwardBVP):
     ):
         super().__init__(config)
 
-        self.u_in = u_inflow
-        self.Re = Re
+        self.u_in = u_inflow  # inflow profile
+        self.Re = Re  # Reynolds number
 
+        # Initialize coordinates
         self.inflow_coords = inflow_coords
         self.outflow_coords = outflow_coords
         self.wall_coords = wall_coords
         self.cylinder_coords = cylinder_coords
         self.noslip_coords = jnp.vstack((self.wall_coords, self.cylinder_coords))
+
+        # Non-dimensionalized domain length and width
         self.L, self.W = self.noslip_coords.max(axis=0) - self.noslip_coords.min(axis=0)
 
-        # Load PDE equations and state variables from YAML
+        # Load PDE equations from YAML
         pde = load_pde_config(config.pde_path)
         self.pde_equations = pde["equations"]  # name -> {expr, coords}
         self.eq_names = list(self.pde_equations.keys())
-        self.state_vars = pde["state_vars"]    # e.g. ["u","v","p"] or ["u","v","p","ux","vy","uy","vx"]
 
+        # Derived groupings used by losses() and compute_diag_ntk()
         self._domain_names = [
             n for n, e in self.pde_equations.items() if e["coords"] == "domain"
         ]
@@ -48,71 +51,61 @@ class NavierStokes2D(ForwardBVP):
             n for n, e in self.pde_equations.items() if e["coords"] == "outflow"
         ]
 
-        # Second-order derivatives (u_xx, v_yy, …) are only needed when the
-        # PDE is written in non-first-order form.  Detect by scanning expressions.
-        self._needs_second_order = any(
-            "_xx" in eq["expr"] or "_yy" in eq["expr"]
-            for eq in self.pde_equations.values()
-        )
-
-        # Generate per-state-var nets: u_net, v_net, p_net, ux_net, vy_net, …
-        for i, var in enumerate(self.state_vars):
-            def _make_var_net(idx):
-                def var_net(params, x, y):
-                    return self.neural_net(params, x, y)[idx]
-                return var_net
-            setattr(self, f"{var}_net", _make_var_net(i))
-
-        # Batch prediction functions
+        # Predict functions over batch
         self.u_pred_fn = vmap(self.u_net, (None, 0, 0))
         self.v_pred_fn = vmap(self.v_net, (None, 0, 0))
         self.p_pred_fn = vmap(self.p_net, (None, 0, 0))
         self.r_pred_fn = vmap(self.r_net, (None, 0, 0))
 
-        # Generate per-equation extractor nets: r_continuity_net, ru_net, …
+        # Auto-generate per-equation extractor nets (e.g. self.ru_net, self.rv_net, ...)
         for i, name in enumerate(self.eq_names):
-            def _make_eq_net(idx):
-                def eq_net(params, x, y):
+            def _make(idx):
+                def net(params, x, y):
                     return self.r_net(params, x, y)[idx]
-                return eq_net
-            setattr(self, f"{name}_net", _make_eq_net(i))
+                return net
+            setattr(self, f"{name}_net", _make(i))
 
     def neural_net(self, params, x, y):
-        x = x / self.L
-        y = y / self.W
+        x = x / self.L  # rescale x into [0, 1]
+        y = y / self.W  # rescale y into [0, 1]
         z = jnp.stack([x, y])
         outputs = self.state.apply_fn(params, z)
-        # Return one scalar per state variable; works for any output_dim.
-        return tuple(outputs[i] for i in range(len(self.state_vars)))
+        u = outputs[0]
+        v = outputs[1]
+        p = outputs[2]
+        return u, v, p
 
-    # u_net, v_net, p_net, ux_net, … are generated dynamically in __init__.
+    def u_net(self, params, x, y):
+        u, _, _ = self.neural_net(params, x, y)
+        return u
+
+    def v_net(self, params, x, y):
+        _, v, _ = self.neural_net(params, x, y)
+        return v
+
+    def p_net(self, params, x, y):
+        _, _, p = self.neural_net(params, x, y)
+        return p
 
     def r_net(self, params, x, y):
-        state_vals = self.neural_net(params, x, y)
+        u, v, p = self.neural_net(params, x, y)
 
-        # jacrev on a tuple-returning function with argnums=(1,2) returns a tuple
-        # of len(state_vars) elements; each element is (d_var/dx, d_var/dy).
-        var_derivs = jacrev(self.neural_net, argnums=(1, 2))(params, x, y)
+        (u_x, u_y), (v_x, v_y), (p_x, p_y) = jacrev(self.neural_net, argnums=(1, 2))(params, x, y)
 
-        ns = {"Re": self.Re}
-        for i, var in enumerate(self.state_vars):
-            ns[var] = state_vals[i]
-            ns[f"{var}_x"] = var_derivs[i][0]  # d(state_vars[i])/dx
-            ns[f"{var}_y"] = var_derivs[i][1]  # d(state_vars[i])/dy
+        u_hessian = hessian(self.u_net, argnums=(1, 2))(params, x, y)
+        v_hessian = hessian(self.v_net, argnums=(1, 2))(params, x, y)
 
-        # Hessian terms (e.g. u_xx, v_yy) — only for non-first-order formulations.
-        # The branch is resolved at trace time since self is static under jit.
-        if self._needs_second_order:
-            for var in self.state_vars:
-                if any(
-                    f"{var}_xx" in eq["expr"] or f"{var}_yy" in eq["expr"]
-                    for eq in self.pde_equations.values()
-                ):
-                    H = hessian(getattr(self, f"{var}_net"), argnums=(1, 2))(params, x, y)
-                    ns[f"{var}_xx"] = H[0][0]
-                    ns[f"{var}_yy"] = H[1][1]
+        ns = dict(
+            u=u, v=v, p=p,
+            u_x=u_x, u_y=u_y,
+            v_x=v_x, v_y=v_y,
+            p_x=p_x, p_y=p_y,
+            u_xx=u_hessian[0][0], u_yy=u_hessian[1][1],
+            v_xx=v_hessian[0][0], v_yy=v_hessian[1][1],
+            Re=self.Re,
+        )
 
-        # JAX tracers flow through eval(); operations are recorded into the XLA graph.
+        # Evaluate each YAML-defined equation; JAX tracers flow through eval()
         return tuple(
             eval(eq["expr"], {"__builtins__": {}}, ns)
             for eq in self.pde_equations.values()
@@ -127,6 +120,7 @@ class NavierStokes2D(ForwardBVP):
         v_in_pred = self.v_pred_fn(
             params, self.inflow_coords[:, 0], self.inflow_coords[:, 1]
         )
+
         u_in_loss = jnp.mean((u_in_pred - self.u_in) ** 2)
         v_in_loss = jnp.mean(v_in_pred**2)
 
@@ -137,6 +131,7 @@ class NavierStokes2D(ForwardBVP):
         v_noslip_pred = self.v_pred_fn(
             params, self.noslip_coords[:, 0], self.noslip_coords[:, 1]
         )
+
         u_noslip_loss = jnp.mean(u_noslip_pred**2)
         v_noslip_loss = jnp.mean(v_noslip_pred**2)
 
@@ -147,7 +142,7 @@ class NavierStokes2D(ForwardBVP):
             "v_noslip": v_noslip_loss,
         }
 
-        # PDE residual losses — evaluation location determined by YAML coords field
+        # PDE and outflow residual losses — location determined by YAML coords field
         domain_res = self.r_pred_fn(params, batch[:, 0], batch[:, 1])
         outflow_res = self.r_pred_fn(
             params, self.outflow_coords[:, 0], self.outflow_coords[:, 1]
@@ -171,6 +166,7 @@ class NavierStokes2D(ForwardBVP):
         v_in_ntk = vmap(ntk_fn, (None, None, 0, 0))(
             self.v_net, params, self.inflow_coords[:, 0], self.inflow_coords[:, 1]
         )
+
         u_noslip_ntk = vmap(ntk_fn, (None, None, 0, 0))(
             self.u_net, params, self.noslip_coords[:, 0], self.noslip_coords[:, 1]
         )
@@ -185,6 +181,7 @@ class NavierStokes2D(ForwardBVP):
             "v_noslip": v_noslip_ntk,
         }
 
+        # Residual NTKs — location determined by YAML coords field
         for name in self._domain_names:
             net = getattr(self, f"{name}_net")
             ntk_dict[name] = vmap(ntk_fn, (None, None, 0, 0))(
@@ -204,38 +201,49 @@ class NavierStokes2D(ForwardBVP):
     def compute_l2_error(self, params, coords, u_test, v_test):
         u_pred = self.u_pred_fn(params, coords[:, 0], coords[:, 1])
         v_pred = self.v_pred_fn(params, coords[:, 0], coords[:, 1])
+
         u_error = jnp.linalg.norm(u_pred - u_test) / jnp.linalg.norm(u_test)
         v_error = jnp.linalg.norm(v_pred - v_test) / jnp.linalg.norm(v_test)
+
         return u_error, v_error
 
     def u_v_grads(self, params, x, y):
         u_x = grad(self.u_net, argnums=1)(params, x, y)
         v_x = grad(self.v_net, argnums=1)(params, x, y)
+
         u_y = grad(self.u_net, argnums=2)(params, x, y)
         v_y = grad(self.v_net, argnums=2)(params, x, y)
+
         return u_x, v_x, u_y, v_y
 
     def compute_drag_lift(self, params, U_star, L_star):
-        nu = 0.001
-        radius = 0.05
-        center = (0.2, 0.2)
-        num_theta = 256
+        nu = 0.001  # Dimensional viscosity
+        radius = 0.05  # radius of cylinder
+        center = (0.2, 0.2)  # center of cylinder
+        num_theta = 256  # number of points on cylinder for evaluation
 
+        # Discretize cylinder into points
         theta = jnp.linspace(0.0, 2 * jnp.pi, num_theta)
         d_theta = theta[1] - theta[0]
         ds = radius * d_theta
 
+        # Cylinder coordinates
         x_cyl = radius * jnp.cos(theta) + center[0]
         y_cyl = radius * jnp.sin(theta) + center[1]
+
+        # Out normals of cylinder
         n_x = jnp.cos(theta)
         n_y = jnp.sin(theta)
 
+        # Nondimensionalize input cylinder coordinates
         x_cyl = x_cyl / L_star
         y_cyl = y_cyl / L_star
 
+        # Nondimensionalize front and back points
         front = jnp.array([center[0] - radius, center[1]]) / L_star
         back = jnp.array([center[0] + radius, center[1]]) / L_star
 
+        # Predictions
         u_x_pred, v_x_pred, u_y_pred, v_y_pred = vmap(self.u_v_grads, (None, 0, 0))(
             params, x_cyl, y_cyl
         )
@@ -245,6 +253,7 @@ class NavierStokes2D(ForwardBVP):
         p_back_pred = self.p_net(params, back[0], back[1])
         p_diff = p_front_pred - p_back_pred
 
+        # Dimensionalize velocity gradients and pressure
         u_x_pred = u_x_pred * U_star / L_star
         v_x_pred = v_x_pred * U_star / L_star
         u_y_pred = u_y_pred * U_star / L_star
@@ -258,6 +267,7 @@ class NavierStokes2D(ForwardBVP):
         I1 = (-p_pred[1:] + 2 * nu * u_x_pred[1:]) * n_x[1:] + nu * (
             u_y_pred[1:] + v_x_pred[1:]
         ) * n_y[1:]
+
         F_D = 0.5 * jnp.sum(I0 + I1) * ds
 
         I0 = (-p_pred[:-1] + 2 * nu * v_y_pred[:-1]) * n_y[:-1] + nu * (
@@ -266,8 +276,10 @@ class NavierStokes2D(ForwardBVP):
         I1 = (-p_pred[1:] + 2 * nu * v_y_pred[1:]) * n_y[1:] + nu * (
             u_y_pred[1:] + v_x_pred[1:]
         ) * n_x[1:]
+
         F_L = 0.5 * jnp.sum(I0 + I1) * ds
 
+        # Nondimensionalized drag and lift and pressure difference
         C_D = 2 / (U_star**2 * L_star) * F_D
         C_L = 2 / (U_star**2 * L_star) * F_L
 

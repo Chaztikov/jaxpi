@@ -1,0 +1,8 @@
+{"time":"2026-06-12T00:49:41.915108462-04:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2026-06-12T00:49:41.915137072-04:00","level":"INFO","msg":"created symlink","path":"/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/wandb/run-20260612_004941-twr49rbo/logs/debug-core.log"}
+{"time":"2026-06-12T00:49:42.028097718-04:00","level":"INFO","msg":"created new stream","id":"twr49rbo"}
+{"time":"2026-06-12T00:49:42.02813489-04:00","level":"INFO","msg":"stream: started","id":"twr49rbo"}
+{"time":"2026-06-12T00:49:42.028159521-04:00","level":"INFO","msg":"writer: Do: started","stream_id":"twr49rbo"}
+{"time":"2026-06-12T00:49:42.028167362-04:00","level":"INFO","msg":"handler: started","stream_id":"twr49rbo"}
+{"time":"2026-06-12T00:49:42.028193857-04:00","level":"INFO","msg":"sender: started","stream_id":"twr49rbo"}
+{"time":"2026-06-12T00:49:42.612080197-04:00","level":"INFO","msg":"Starting system monitor"}

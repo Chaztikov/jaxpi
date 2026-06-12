@@ -1,0 +1,49 @@
+{
+  "os": "Linux-5.15.0-50-generic-x86_64-with-glibc2.35",
+  "python": "3.10.4",
+  "startedAt": "2026-06-12T04:49:41.912263Z",
+  "args": [
+    "--config",
+    "configs/default_vvg.py",
+    "--workdir",
+    "."
+  ],
+  "program": "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/main.py",
+  "codePath": "examples/fo_ns_steady_cylinder/main.py",
+  "git": {
+    "remote": "https://github.com/Chaztikov/jaxpi",
+    "commit": "3738905e99da4485cec0d45ef54e4a70c71307d8"
+  },
+  "email": "Chaztikov@gmail.com",
+  "root": "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder",
+  "host": "priority",
+  "username": "chaztikov",
+  "executable": "/usr/bin/python",
+  "codePathLocal": "main.py",
+  "cpu_count": 6,
+  "cpu_count_logical": 12,
+  "gpu": "NVIDIA GeForce RTX 3090 Ti",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "471315038208",
+      "used": "439031853056"
+    }
+  },
+  "memory": {
+    "total": "67352064000"
+  },
+  "cpu": {
+    "count": 6,
+    "countLogical": 12
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3090 Ti",
+      "memoryTotal": "25757220864",
+      "cudaCores": 10752,
+      "architecture": "Ampere"
+    }
+  ],
+  "cudaVersion": "11.7"
+}

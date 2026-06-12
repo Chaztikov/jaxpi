@@ -1,0 +1,67 @@
+name: "Steady Incompressible Navier-Stokes 2D"
+state_vars: [u, v, p, ux, vy, uy, vx]
+output_dim: 7
+input_dim: 2
+# Symbols available in equation expressions:
+#   State variables : u, v, p
+#   1st derivatives : u_x, u_y, v_x, v_y, p_x, p_y
+#   2nd derivatives : u_xx, u_yy, v_xx, v_yy
+#   Parameters      : Re
+equations:
+  r_continuity:
+    expr: "ux + vy"
+    coords: domain
+  r_momentum_x:
+    expr: "u * ux + v * uy + p_x - (ux_x + uy_y) / Re"
+    coords: domain
+  r_momentum_y:
+    expr: "u * vx + v * vy + p_y - (vx_x + vy_y) / Re"
+    coords: domain
+  r_compatibility_ux:
+    expr: "u_x-ux"
+    coords: domain
+  r_compatibility_uy:
+    expr: "u_y-uy"
+    coords: domain
+  r_compatibility_vx:
+    expr: "v_x-vx"
+    coords: domain
+  r_compatibility_vy:
+    expr: "v_y-vy"
+    coords: domain
+  r_consistency_grad_trace_velocity_gradient_1:
+    expr: "ux_x + vy_x"
+    coords: domain
+  r_consistency_grad_trace_velocity_gradient_2:
+    expr: "ux_y + vy_y"
+    coords: domain
+  r_consistency_curl_velocity_gradient_1:
+    expr: "uy_x - ux_y"
+    coords: domain
+  r_consistency_curl_velocity_gradient_2:
+    expr: "vy_x - vx_y"
+    coords: domain
+  u_out:
+    expr: "u_x - p"
+    coords: outflow
+  v_out:
+    expr: "v_x"
+    coords: outflow
+  # curl_uv:
+  #   expr: "vx-uy"
+  #   coords: domain
+  # get_U1:
+  #   expr: "ux"
+  #   coords: domain
+  # get_U2:
+  #   expr: "vy"
+  #   coords: domain
+  # get_U3:
+  #   expr: "uy"
+  #   coords: domain
+  # get_U4:
+  #   expr: "vx"
+  #   coords: domain
+  # get_velocity_gradient:
+  #   expr: "[ux, vy, uy, vx]"
+  #   coords: domain

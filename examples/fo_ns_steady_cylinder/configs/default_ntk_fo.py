@@ -26,7 +26,7 @@ def get_config():
     arch.arch_name = "Mlp"
     arch.num_layers = 4
     arch.hidden_dim = 128
-    arch.out_dim = 3
+    arch.out_dim = 7
     arch.activation = "gelu"  # gelu works better than tanh
     arch.periodicity = False
     arch.fourier_emb = ml_collections.ConfigDict(
@@ -63,9 +63,17 @@ def get_config():
             "v_out": 1.0,
             "u_noslip": 1.0,
             "v_noslip": 1.0,
-            "ru": 1.0,
-            "rv": 1.0,
-            "rc": 1.0,
+            "r_continuity": 1.0,
+            "r_momentum_x": 1.0,
+            "r_momentum_y": 1.0,
+            "r_compatibility_ux": 1.0,
+            "r_compatibility_vy": 1.0,
+            "r_compatibility_uy": 1.0,
+            "r_compatibility_vx": 1.0,
+            "r_consistency_grad_trace_velocity_gradient_1": 1.0,
+            "r_consistency_grad_trace_velocity_gradient_2": 1.0,
+            "r_consistency_curl_velocity_gradient_1": 1.0,
+            "r_consistency_curl_velocity_gradient_2": 1.0,
         }
     )
     weighting.momentum = 0.9

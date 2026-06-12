@@ -1,10 +1,13 @@
 import ml_collections
 
-import jax.numpy as jnp
-
 
 def get_config():
-    """Get the default hyperparameter configuration."""
+    """Hyperparameter configuration for the first-order (VVG) NS formulation.
+
+    Network outputs: [u, v, p, ux, vy, uy, vx] where ux=du/dx etc.
+    Compatibility and consistency conditions are enforced as additional losses.
+    No second-order autodiff is needed — one jacrev pass suffices.
+    """
     config = ml_collections.ConfigDict()
 
     config.mode = "train"
@@ -12,22 +15,22 @@ def get_config():
     # Weights & Biases
     config.wandb = wandb = ml_collections.ConfigDict()
     wandb.project = "PINN-NS_steady_cylinder"
-    wandb.name = "default_ntk"
+    wandb.name = "default_vvg"
     wandb.tag = None
 
     # Nondimensionalization
     config.nondim = True
 
     # PDE definition file (YAML)
-    config.pde_path = "./configs/pde.yaml"
+    config.pde_path = "./configs/pde_vvg.yaml"
 
-    # Arch
+    # Arch — out_dim must match len(state_vars) in pde_vvg.yaml
     config.arch = arch = ml_collections.ConfigDict()
     arch.arch_name = "Mlp"
     arch.num_layers = 4
     arch.hidden_dim = 128
-    arch.out_dim = 3
-    arch.activation = "gelu"  # gelu works better than tanh
+    arch.out_dim = 7
+    arch.activation = "gelu"
     arch.periodicity = False
     arch.fourier_emb = ml_collections.ConfigDict(
         {"embed_scale": 10.0, "embed_dim": 128}
@@ -52,24 +55,35 @@ def get_config():
     training.max_steps = 100000
     training.batch_size_per_device = 1024
 
-    # Weighting
+    # Weighting — keys must cover all loss terms: 4 BCs + 13 PDE equations
     config.weighting = weighting = ml_collections.ConfigDict()
-    weighting.scheme = "ntk"
+    weighting.scheme = "grad_norm"
     weighting.init_weights = ml_collections.ConfigDict(
         {
+            # Dirichlet / no-slip BCs (hardcoded in losses())
             "u_in": 1.0,
             "v_in": 1.0,
-            "u_out": 1.0,
-            "v_out": 1.0,
             "u_noslip": 1.0,
             "v_noslip": 1.0,
-            "ru": 1.0,
-            "rv": 1.0,
-            "rc": 1.0,
+            # PDE residuals (from pde_vvg.yaml — domain)
+            "r_continuity": 1.0,
+            "r_momentum_x": 1.0,
+            "r_momentum_y": 1.0,
+            "r_compatibility_ux": 1.0,
+            "r_compatibility_uy": 1.0,
+            "r_compatibility_vx": 1.0,
+            "r_compatibility_vy": 1.0,
+            "r_consistency_grad_trace_velocity_gradient_1": 1.0,
+            "r_consistency_grad_trace_velocity_gradient_2": 1.0,
+            "r_consistency_curl_velocity_gradient_1": 1.0,
+            "r_consistency_curl_velocity_gradient_2": 1.0,
+            # Outflow BCs (from pde_vvg.yaml — outflow)
+            "u_out": 1.0,
+            "v_out": 1.0,
         }
     )
     weighting.momentum = 0.9
-    weighting.update_every_steps = 1000  # 100 for grad norm and 1000 for ntk
+    weighting.update_every_steps = 1000
 
     # Logging
     config.logging = logging = ml_collections.ConfigDict()
@@ -86,10 +100,7 @@ def get_config():
     saving.save_every_steps = None
     saving.num_keep_ckpts = 10
 
-    # Input shape for initializing Flax models
     config.input_dim = 2
-
-    # Integer for PRNG random seed.
     config.seed = 42
 
     return config

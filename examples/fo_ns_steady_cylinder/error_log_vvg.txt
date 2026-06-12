@@ -1,0 +1,73 @@
+chaztikov@priority:~/git/jaxpi/examples/fo_ns_steady_cylinder$ python main.py --config configs/default_vvg.py --workdir .
+WARNING:2026-06-12 00:37:36,665:jax._src.xla_bridge:969: An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+2026-06-12 00:37:37.231383: E tensorflow/stream_executor/cuda/cuda_blas.cc:2981] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+/home/chaztikov/.local/lib/python3.10/site-packages/google/api_core/_python_version_support.py:266: FutureWarning: You are using a Python version (3.10.4) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+  warnings.warn(message, FutureWarning)
+2026-06-12 00:37:38.345792: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libnvinfer.so.7'; dlerror: libnvinfer.so.7: cannot open shared object file: No such file or directory
+2026-06-12 00:37:38.345891: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libnvinfer_plugin.so.7'; dlerror: libnvinfer_plugin.so.7: cannot open shared object file: No such file or directory
+2026-06-12 00:37:38.345906: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Cannot dlopen some TensorRT libraries. If you would like to use Nvidia GPU with TensorRT, please make sure the missing libraries mentioned above are installed properly.
+/home/chaztikov/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py:62: UserWarning: Pandas requires version '1.3.4' or newer of 'bottleneck' (version '1.3.2' currently installed).
+  from pandas.core import (
+/home/chaztikov/.local/lib/python3.10/site-packages/absl/flags/_validators.py:229: UserWarning: Flag --config has a non-None default value; therefore, mark_flag_as_required will pass even if flag is not specified in the command line!
+  mark_flag_as_required(flag_name, flag_values)
+/home/chaztikov/.local/lib/python3.10/site-packages/absl/flags/_validators.py:229: UserWarning: Flag --workdir has a non-None default value; therefore, mark_flag_as_required will pass even if flag is not specified in the command line!
+  mark_flag_as_required(flag_name, flag_values)
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: chaztikov (unc-chapel-hill-applied-mathematics-ctalbot). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in /home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/wandb/run-20260612_003740-as0ahsla
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run default_vvg
+wandb: ⭐️ View project at https://wandb.ai/unc-chapel-hill-applied-mathematics-ctalbot/PINN-NS_steady_cylinder
+wandb: 🚀 View run at https://wandb.ai/unc-chapel-hill-applied-mathematics-ctalbot/PINN-NS_steady_cylinder/runs/as0ahsla
+Waiting for JIT...
+jax.errors.SimplifiedTraceback: For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/main.py", line 41, in <module>
+    app.run(main)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/absl/app.py", line 308, in run
+    _run_main(main, args)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/absl/app.py", line 254, in _run_main
+    sys.exit(main(argv))
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/main.py", line 33, in main
+    train.train_and_evaluate(FLAGS.config, FLAGS.workdir)
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/train.py", line 97, in train_and_evaluate
+    model.state = model.step(model.state, batch)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/jaxpi/models.py", line 171, in step
+    grads = grad(self.loss)(state.params, state.weights, batch, *args)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/jaxpi/models.py", line 124, in loss
+    losses = self.losses(params, batch, *args)
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/models.py", line 151, in losses
+    domain_res = self.r_pred_fn(params, batch[:, 0], batch[:, 1])
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/models.py", line 95, in r_net
+    derivs_x, derivs_y = jacrev(self.neural_net, argnums=(1, 2))(params, x, y)
+ValueError: too many values to unpack (expected 2)
+jax.errors.SimplifiedTraceback: For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/main.py", line 41, in <module>
+    app.run(main)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/absl/app.py", line 308, in run
+    _run_main(main, args)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/absl/app.py", line 254, in _run_main
+    sys.exit(main(argv))
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/main.py", line 33, in main
+    train.train_and_evaluate(FLAGS.config, FLAGS.workdir)
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/train.py", line 97, in train_and_evaluate
+    model.state = model.step(model.state, batch)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/jaxpi/models.py", line 171, in step
+    grads = grad(self.loss)(state.params, state.weights, batch, *args)
+  File "/home/chaztikov/.local/lib/python3.10/site-packages/jaxpi/models.py", line 124, in loss
+    losses = self.losses(params, batch, *args)
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/models.py", line 151, in losses
+    domain_res = self.r_pred_fn(params, batch[:, 0], batch[:, 1])
+  File "/home/chaztikov/git/jaxpi/examples/fo_ns_steady_cylinder/models.py", line 95, in r_net
+    derivs_x, derivs_y = jacrev(self.neural_net, argnums=(1, 2))(params, x, y)
+ValueError: too many values to unpack (expected 2)
+wandb: 🚀 View run default_vvg at: https://wandb.ai/unc-chapel-hill-applied-mathematics-ctalbot/PINN-NS_steady_cylinder/runs/as0ahsla
+wandb: Find logs at: wandb/run-20260612_003740-as0ahsla/logs
