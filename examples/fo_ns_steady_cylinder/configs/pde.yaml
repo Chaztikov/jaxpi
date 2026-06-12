@@ -1,0 +1,25 @@
+name: "Steady Incompressible Navier-Stokes 2D"
+state_vars: [u, v, p]
+
+# Symbols available in equation expressions:
+#   State variables : u, v, p
+#   1st derivatives : u_x, u_y, v_x, v_y, p_x, p_y
+#   2nd derivatives : u_xx, u_yy, v_xx, v_yy
+#   Parameters      : Re
+
+equations:
+  ru:
+    expr: "u * u_x + v * u_y + p_x - (u_xx + u_yy) / Re"
+    coords: domain
+  rv:
+    expr: "u * v_x + v * v_y + p_y - (v_xx + v_yy) / Re"
+    coords: domain
+  rc:
+    expr: "u_x + v_y"
+    coords: domain
+  u_out:
+    expr: "u_x - p"
+    coords: outflow
+  v_out:
+    expr: "v_x"
+    coords: outflow
